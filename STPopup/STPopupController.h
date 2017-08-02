@@ -71,6 +71,11 @@ typedef NS_ENUM(NSUInteger, STPopupTransitionStyle) {
     STPopupTransitionStyleCustom
 };
 
+typedef NS_ENUM(NSUInteger, STPopupChangeStyle) {
+    STPopupChangeDefault,
+    STPopupChangeHeight
+};
+
 @interface STPopupController : NSObject
 
 /**
@@ -78,6 +83,7 @@ typedef NS_ENUM(NSUInteger, STPopupTransitionStyle) {
  @see STPopupStyle
  */
 @property (nonatomic, assign) STPopupStyle style;
+@property (nonatomic, assign) STPopupChangeStyle changeStyle;
 
 /**
  Transition style used in presenting and dismissing the popup.

@@ -665,7 +665,6 @@ static NSMutableSet *_retainedPopupControllers;
     if (!currentTextInput) {
         return;
     }
-    
     _keyboardInfo = notification.userInfo;
     [self adjustContainerViewOrigin];
 }
@@ -698,6 +697,11 @@ static NSMutableSet *_retainedPopupControllers;
         return;
     }
     
+    CGSize contentSize = self.topViewController.contentSizeInPopup;
+    CGRect containerFrame = _containerView.frame;
+    containerFrame.size = contentSize;
+    _containerView.frame = containerFrame;
+    
     CGAffineTransform lastTransform = _containerView.transform;
     _containerView.transform = CGAffineTransformIdentity; // Set transform to identity for calculating a correct "minOffsetY"
     
@@ -711,6 +715,7 @@ static NSMutableSet *_retainedPopupControllers;
     }
     
     CGFloat offsetY = 0;
+    CGFloat offsetHeight = 0;
     if (self.style == STPopupStyleBottomSheet) {
         offsetY = keyboardHeight;
     }
@@ -735,6 +740,15 @@ static NSMutableSet *_retainedPopupControllers;
         }
     }
     
+    //After changing offset y, container may move out of screen, we should calcalute and reduce the container height to fit the screen
+    CGRect f = _containerView.frame;
+    f.origin.y -= offsetY;
+    CGFloat statusBarHeight = [UIApplication sharedApplication].statusBarHidden ? 0 : [UIApplication sharedApplication].statusBarFrame.size.height;
+    if (f.origin.y < statusBarHeight) {
+        offsetHeight = fabsf(f.origin.y - statusBarHeight);
+        offsetY -= offsetHeight;
+    }
+    
     NSTimeInterval duration = [_keyboardInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
     UIViewAnimationCurve curve = [_keyboardInfo[UIKeyboardAnimationCurveUserInfoKey] intValue];
     
@@ -744,9 +758,24 @@ static NSMutableSet *_retainedPopupControllers;
     [UIView setAnimationBeginsFromCurrentState:YES];
     [UIView setAnimationCurve:curve];
     [UIView setAnimationDuration:duration];
+    switch (_changeStyle) {
+        case STPopupChangeHeight: {
+            CGRect f = _containerView.frame;
+            _containerView.frame = CGRectMake(f.origin.x,
+                                              f.origin.y,
+                                              f.size.width,
+                                              f.size.height - offsetHeight);
+            self.topViewController.view.frame = _containerView.bounds;
+            _containerView.transform = CGAffineTransformMakeTranslation(0, -offsetY);
+            break;
+        }
+            
+        default:
+            _containerView.transform = CGAffineTransformMakeTranslation(0, -offsetY);
+            break;
+    }
     
-    _containerView.transform = CGAffineTransformMakeTranslation(0, -offsetY);
-    
+    //_containerView.transform = CGAffineTransformMakeTranslation(0, -offsetY);
     [UIView commitAnimations];
 }
 
